@@ -9,6 +9,7 @@ export default class RestaurantsDAO {
       restaurants = await conn
         .db(process.env.RESTAURANTREVIEWS_NS)
         .collection("restaurants");
+      console.log("Connection to collection RESTAURANTS successful");
     } catch (err) {
       console.log(`Error communicating with database : ${err}`);
     }
@@ -22,11 +23,11 @@ export default class RestaurantsDAO {
     let query;
     if (filters) {
       if ("name" in filters) {
-        query = { $text: { $search: filters["name"] } };
+        query = { $text: { $search: filters.name } };
       } else if ("cuisine" in filters) {
-        query = { cuisine: { $eq: filters["cuisine"] } };
+        query = { cuisine: { $eq: filters.cuisine } };
       } else if ("zipcode" in filters) {
-        query = { "address.zipcode": { $eq: filters["zipcode"] } };
+        query = { "address.zipcode": { $eq: filters.zipcode } };
       }
     }
 
@@ -34,9 +35,9 @@ export default class RestaurantsDAO {
 
     try {
       cursor = await restaurants.find(query);
-    } catch (err) {
-      console.log(`Unable to find requested documents : ${err}`);
-      return { restaurantsList: [], restaurantCount: 0 };
+    } catch (e) {
+      console.error(`Unable to issue find command, ${e}`);
+      return { restaurantsList: [], totalNumRestaurants: 0 };
     }
 
     const displayCursor = cursor
@@ -45,12 +46,14 @@ export default class RestaurantsDAO {
 
     try {
       const restaurantsList = await displayCursor.toArray();
-      const restaurantCount = await restaurants.countDocuments(query);
-    } catch (err) {
-      console.log(
-        `Error occured converting cursor to array or counting documents : ${err}`
+      const totalNumRestaurants = await restaurants.countDocuments(query);
+
+      return { restaurantsList, totalNumRestaurants };
+    } catch (e) {
+      console.error(
+        `Unable to convert cursor to array or problem counting documents, ${e}`
       );
-      return { restaurantsList: [], restaurantCount: 0 };
+      return { restaurantsList: [], totalNumRestaurants: 0 };
     }
   }
 }
